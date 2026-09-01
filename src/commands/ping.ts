@@ -9,7 +9,7 @@ const ping: Command = {
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         const { resource } = await interaction.reply({ content: 'Pinging...', withResponse: true  });
-        const sent: Message<boolean> | null | undefined = await resource?.message;
+        const sent: Message<boolean> | null | undefined = resource?.message;
 
         // Ensure Sent Message is Valid
         if (!sent) {
