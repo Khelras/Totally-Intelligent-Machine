@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits } from 'discord.js';
+import { Client, Collection, GatewayIntentBits } from 'discord.js';
 
 // Export the Client
 export const client: Client = new Client({
@@ -10,3 +10,6 @@ export const client: Client = new Client({
         GatewayIntentBits.MessageContent,
     ]
 });
+
+// Create a Collection for commands and add it to the Client
+client.commands = new Collection();
