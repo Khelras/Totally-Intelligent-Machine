@@ -13,6 +13,9 @@ export type Command = {
     // The metadata of the command (name, description, options, etc.)
     data: SlashCommandData;
 
+    // Optional: Whether the command is restricted to guilds
+    guildOnly?: boolean;
+
     // The function that runs when the command is invoked
     execute: (interaction: ChatInputCommandInteraction) => Promise<void>;
 }
