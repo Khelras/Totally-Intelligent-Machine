@@ -5,7 +5,7 @@ import type { Command } from '../types/command.js';
 const ping: Command = {
     data: new SlashCommandBuilder()
         .setName('ping')
-        .setDescription('Check the the bot\'s current latency.'),
+        .setDescription('Check the bot\'s current latency.'),
     guildOnly: false,
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         const { resource } = await interaction.reply({ content: 'Pinging...', withResponse: true  });
