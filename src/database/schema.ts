@@ -5,46 +5,45 @@ import { db } from './database.js';
  * on every startup — `IF NOT EXISTS` makes this idempotent.
  */
 export function initializeSchema(): void {
-    // Per-server settings: where and when to post the daily reminder.
+    // One row per user, globally — streaks are no longer tied to a guild.
+    // last_channel_id/last_guild_id track where to send this user's
+    // reminder, automatically updated on every /submit.
     db.exec(`
-        CREATE TABLE IF NOT EXISTS guild_config (
-            guild_id TEXT PRIMARY KEY,
-            reminder_channel_id TEXT NOT NULL,
-            reminder_time TEXT NOT NULL,
-            timezone TEXT NOT NULL DEFAULT 'UTC'
+        CREATE TABLE IF NOT EXISTS streaks (
+            user_id TEXT PRIMARY KEY,
+            current_streak INTEGER NOT NULL DEFAULT 0,
+            best_streak INTEGER NOT NULL DEFAULT 0,
+            last_submission_date TEXT,
+            last_channel_id TEXT,
+            last_guild_id TEXT
         );
     `);
 
-    // One row per submission event. A composite index on (user_id, guild_id)
-    // speeds up the "has this user submitted today" lookup used by both
-    // /submit and the straggler reminder job.
+    // Submission history. guild_id is kept here (not just on streaks)
+    // since a full log benefits from knowing exactly where each specific
+    // submission happened, even if the user's "home channel" later changes.
     db.exec(`
         CREATE TABLE IF NOT EXISTS submissions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id TEXT NOT NULL,
+            channel_id TEXT NOT NULL,
             guild_id TEXT NOT NULL,
             submission_date TEXT NOT NULL,
             image_url TEXT,
             created_at TEXT NOT NULL DEFAULT (datetime('now')),
-            FOREIGN KEY (guild_id) REFERENCES guild_config(guild_id)
+            FOREIGN KEY (user_id) REFERENCES streaks(user_id)
         );
     `);
     db.exec(`
-        CREATE INDEX IF NOT EXISTS idx_submissions_user_guild
-        ON submissions (user_id, guild_id);
+        CREATE INDEX IF NOT EXISTS idx_submissions_user
+        ON submissions (user_id);
     `);
 
-    // Cached streak state per user-per-guild, so /streak and the leaderboard
-    // don't need to recompute from the full submissions history each time.
+    // This index is what makes "group reminders by channel" cheap later:
+    // a single indexed lookup on streaks.last_channel_id finds everyone
+    // whose home channel is a given one.
     db.exec(`
-        CREATE TABLE IF NOT EXISTS streaks (
-            user_id TEXT NOT NULL,
-            guild_id TEXT NOT NULL,
-            current_streak INTEGER NOT NULL DEFAULT 0,
-            best_streak INTEGER NOT NULL DEFAULT 0,
-            last_submission_date TEXT,
-            PRIMARY KEY (user_id, guild_id),
-            FOREIGN KEY (guild_id) REFERENCES guild_config(guild_id)
-        );
+        CREATE INDEX IF NOT EXISTS idx_streaks_last_channel
+        ON streaks (last_channel_id);
     `);
 }
